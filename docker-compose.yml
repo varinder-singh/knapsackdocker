@@ -1,0 +1,78 @@
+version: '3.9'
+
+services:
+  zookeeper:
+    image: confluentinc/cp-zookeeper:latest
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - 22181:2181
+  
+  kafka:
+    image: confluentinc/cp-kafka:latest
+    depends_on:
+      - zookeeper
+    ports:
+      - 29092:29092
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:29092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+
+  oracle-db:
+    image: oracleinanutshell/oracle-xe-11g:latest
+    ports:
+      - 1521:1521
+      - 5500:5500
+
+  ks:
+    build: demo/demo/.
+    ports:
+      - 9090:9090
+    environment:
+      spring.datasource.url: "jdbc:oracle:thin:@oracle-db:1521:xe"
+      knapsack.solver.url: "http://kks:9091/publish"
+    container_name: kscontainer
+    depends_on:
+      - oracle-db
+    restart: on-failure
+
+  kks:
+    build: KnasackKafka/knapsackKafka/.
+    ports:
+      - 9091:9091
+    environment:
+      spring.datasource.url: "jdbc:oracle:thin:@oracle-db:1521:xe"
+      kafka.bootstrapaddress: "http://kafka:9092"
+    container_name: kkscontainer
+    depends_on:
+      - oracle-db
+      - kafka
+    restart: on-failure
+
+
+
+# services:
+#   kks:
+#     build: KnasackKafka/knapsackKafka/.
+#     ports:
+#       - '9091:9091'
+#     container_name: kkscontainer
+#     depends_on:
+#       - ks
+#     restart: on-failure
+#   ks:
+#     build: demo/demo/.
+#     ports:
+#       - '9090:9090'
+#       - '9093:9093'
+#     container_name: kscontainer
+#     volumes:
+#       - type: bind
+#       - source: 'C:/Users/sandhuv/Documents/Maersk/knapsackDocker/demo/demo/data'
+#       - target: /usr
+#     restart: on-failure
