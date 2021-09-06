@@ -58,7 +58,7 @@ services:
   ks:
     build: demo/demo/.
     ports:
-      - 9090:9090
+      - 6543:9090
     environment:
       spring.datasource.url: "jdbc:oracle:thin:@oracle-db:1521:xe"
       knapsack.solver.url: "http://kks:9091/publish"
